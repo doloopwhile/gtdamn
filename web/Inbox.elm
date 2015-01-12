@@ -1,7 +1,7 @@
 module Inbox where
 
 import Date
-import Time (..)
+import Time
 import Signal
 import Graphics.Element (..)
 import Graphics.Input.Field as Field
@@ -16,45 +16,39 @@ type alias Model =
 
 type alias Task =
   { text: String
-  , createdAt: Time
+  , createdAt: Time.Time
   }
+
 
 model : Signal Model
 model =
-  -- Signal.constant <|
-  --   case getStorage of
-  --     Nothing -> {tasks = []}
-  --     Just m -> m
-  --
-  Signal.constant {
-      tasks = [
-        { text = "foo"
-        , createdAt = 1421054358 * second
-        }
-      , { text = "bar"
-        , createdAt = 1421054000 * second
-        }
-      ]
-    }
+  let
+    start = case getStorage of
+      Nothing -> {tasks = []}
+      Just m -> m
+  in
+    Signal.foldp (\t m -> {m | tasks <- m.tasks ++ [t]}) start newTasks
+
+newTasks : Signal Task
+newTasks =
+  Signal.map (\(t, c) -> {text = c.string, createdAt = t})
+    <| Signal.sampleOn (Signal.subscribe addClicked) (Time.timestamp <| Signal.subscribe taskContent)
 
 main : Signal Element
 main = Signal.map2 view model (Signal.subscribe taskContent)
 
 taskContent : Signal.Channel Field.Content
-taskContent =
-  Signal.channel Field.noContent
+taskContent = Signal.channel Field.noContent
 
-taskEnter : Signal.Channel ()
-taskEnter =
-  Signal.channel ()
+addClicked : Signal.Channel ()
+addClicked = Signal.channel ()
 
-
-view : Model -> Field.Content-> Element
+view : Model -> Field.Content -> Element
 view m fc = let
     listView =
       flow down <|
         (List.map (\t ->
-          flow right [
+          flow down [
             (Text.plainText t.text)
           , (Text.plainText " ")
           , (Text.plainText <| dateString t)
@@ -62,7 +56,7 @@ view m fc = let
         ) m.tasks)
     inputView = flow right [
       Field.field Field.defaultStyle (Signal.send taskContent) "input your task" fc
-    , button (Signal.send taskEnter ()) "Add"
+    , button (Signal.send addClicked ()) "Add"
     , Text.plainText fc.string
     ]
   in

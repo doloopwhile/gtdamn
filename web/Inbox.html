@@ -12,12 +12,6 @@
 var key = 'gtdamn-state';
 var storedState = localStorage.getItem(key);
 var startingState = storedState ? JSON.parse(storedState) : null;
-startingState = {
-  tasks: [
-    {text: "foo", createdAt: 1421054358},
-    {text: "bar", createdAt: 1421054000},
-  ]
-}
 
 var todomvc = Elm.fullscreen(Elm.Inbox, {
   getStorage: startingState,
